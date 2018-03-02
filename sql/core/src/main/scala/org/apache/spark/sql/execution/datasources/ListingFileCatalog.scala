@@ -53,6 +53,8 @@ class ListingFileCatalog(
   @volatile private var cachedLeafDirToChildrenFiles: Map[Path, Array[FileStatus]] = _
   @volatile private var cachedPartitionSpec: PartitionSpec = _
 
+  logWarning(s"useSingleParquetPartition has been set to $useSingleParquetPartition")
+
   refresh()
 
   override def partitionSpec(): PartitionSpec = {
