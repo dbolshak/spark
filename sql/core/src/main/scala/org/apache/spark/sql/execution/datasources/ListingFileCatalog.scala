@@ -20,9 +20,8 @@ package org.apache.spark.sql.execution.datasources
 import java.io.FileNotFoundException
 
 import scala.collection.mutable
-import scala.util.Try
 
-import org.apache.hadoop.fs.{FileStatus, LocatedFileStatus, Path}
+import org.apache.hadoop.fs.{FileStatus, FileSystem, LocatedFileStatus, Path}
 import org.apache.hadoop.mapred.{FileInputFormat, JobConf}
 
 import org.apache.spark.sql.SparkSession
@@ -97,11 +96,11 @@ class ListingFileCatalog(
       // listing.
 
       // Dummy jobconf to get to the pathFilter defined in configuration
-      val jobConf = new JobConf(hadoopConf, this.getClass)
-      val pathFilter = FileInputFormat.getInputPathFilter(jobConf)
+      val pathFilter = FileInputFormat.getInputPathFilter(new JobConf(hadoopConf, this.getClass))
+      val fs = paths.headOption.map(_.getFileSystem(hadoopConf))
+        .getOrElse(FileSystem.get(hadoopConf))
 
       val statuses: Seq[FileStatus] = paths.flatMap { path =>
-        val fs = path.getFileSystem(hadoopConf)
         logTrace(s"Listing $path on driver")
 
         val childStatuses = {
