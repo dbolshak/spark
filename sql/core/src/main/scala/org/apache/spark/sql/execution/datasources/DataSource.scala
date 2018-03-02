@@ -29,12 +29,12 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.execution.datasources.csv.CSVFileFormat
 import org.apache.spark.sql.execution.datasources.jdbc.JdbcRelationProvider
 import org.apache.spark.sql.execution.datasources.json.JsonFileFormat
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
+import org.apache.spark.sql.execution.datasources.parquet.ParquetOptions.MERGE_SCHEMA
 import org.apache.spark.sql.execution.streaming._
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources._
@@ -189,8 +189,14 @@ case class DataSource(
    * Infer the schema of the given FileFormat, returns a pair of schema and partition column names.
    */
   private def inferFileFormatSchema(format: FileFormat): (StructType, Seq[String]) = {
+    val caseInsensitiveOptions = new CaseInsensitiveMap(options)
+
+    val parquetMergeSchema = caseInsensitiveOptions
+      .get(MERGE_SCHEMA)
+      .map(_.toBoolean)
+      .getOrElse(sparkSession.sessionState.conf.getConf(SQLConf.PARQUET_SCHEMA_MERGING_ENABLED))
+
     userSpecifiedSchema.map(_ -> partitionColumns).orElse {
-      val caseInsensitiveOptions = new CaseInsensitiveMap(options)
       val allPaths = caseInsensitiveOptions.get("path")
       val globbedPaths = allPaths.toSeq.flatMap { path =>
         val hdfsPath = new Path(path)
@@ -198,7 +204,9 @@ case class DataSource(
         val qualified = hdfsPath.makeQualified(fs.getUri, fs.getWorkingDirectory)
         SparkHadoopUtil.get.globPathIfNecessary(qualified)
       }.toArray
-      val fileCatalog = new ListingFileCatalog(sparkSession, globbedPaths, options, None)
+      val fileCatalog = new ListingFileCatalog(sparkSession, globbedPaths, options, None, false,
+        parquetMergeSchema && format.toString == "ParquetFormat"
+      )
       val partitionSchema = fileCatalog.partitionSpec().partitionColumns
       val inferred = format.inferSchema(
         sparkSession,

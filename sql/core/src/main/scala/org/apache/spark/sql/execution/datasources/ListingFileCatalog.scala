@@ -46,7 +46,8 @@ class ListingFileCatalog(
     override val paths: Seq[Path],
     parameters: Map[String, String],
     partitionSchema: Option[StructType],
-    ignoreFileNotFound: Boolean = false)
+    ignoreFileNotFound: Boolean = false,
+    useSingleParquetPartition: Boolean = false)
   extends PartitioningAwareFileCatalog(sparkSession, parameters, partitionSchema) {
 
   @volatile private var cachedLeafFiles: mutable.LinkedHashMap[Path, FileStatus] = _
