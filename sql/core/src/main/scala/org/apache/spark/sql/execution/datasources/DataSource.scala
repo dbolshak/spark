@@ -205,7 +205,7 @@ case class DataSource(
         SparkHadoopUtil.get.globPathIfNecessary(qualified)
       }.toArray
       val fileCatalog = new ListingFileCatalog(sparkSession, globbedPaths, options, None, false,
-        parquetMergeSchema && format.toString == "ParquetFormat"
+        parquetMergeSchema && className == "parquet"
       )
       val partitionSchema = fileCatalog.partitionSpec().partitionColumns
       val inferred = format.inferSchema(
@@ -345,6 +345,14 @@ case class DataSource(
    */
   def resolveRelation(checkPathExist: Boolean = true): BaseRelation = {
     val caseInsensitiveOptions = new CaseInsensitiveMap(options)
+
+    val parquetMergeSchema = caseInsensitiveOptions
+      .get(MERGE_SCHEMA)
+      .map(_.toBoolean)
+      .getOrElse(sparkSession.sessionState.conf.getConf(SQLConf.PARQUET_SCHEMA_MERGING_ENABLED))
+
+    val useSingleParquetPartition = parquetMergeSchema && className == "parquet"
+
     val relation = (providingClass.newInstance(), userSpecifiedSchema) match {
       // TODO: Throw when too much is given.
       case (dataSource: SchemaRelationProvider, Some(schema)) =>
@@ -412,9 +420,8 @@ case class DataSource(
             })
         }
 
-        val fileCatalog =
-          new ListingFileCatalog(
-            sparkSession, globbedPaths, options, partitionSchema, !checkPathExist)
+        val fileCatalog = new ListingFileCatalog(sparkSession,
+          globbedPaths, options, partitionSchema, !checkPathExist, useSingleParquetPartition)
 
         val dataSchema = userSpecifiedSchema.map { schema =>
           val equality =
