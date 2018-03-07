@@ -204,9 +204,12 @@ case class DataSource(
         val qualified = hdfsPath.makeQualified(fs.getUri, fs.getWorkingDirectory)
         SparkHadoopUtil.get.globPathIfNecessary(qualified)
       }.toArray
-      val fileCatalog = new ListingFileCatalog(sparkSession, globbedPaths, options, None, false,
-        parquetMergeSchema && className == "parquet"
-      )
+      val fileCatalog = if (parquetMergeSchema && className == "parquet") {
+        new ParquetLightweightCatalog(sparkSession, globbedPaths, options, None, false)
+      } else {
+        new ListingFileCatalog(sparkSession, globbedPaths, options, None, false)
+      }
+
       val partitionSchema = fileCatalog.partitionSpec().partitionColumns
       val inferred = format.inferSchema(
         sparkSession,
@@ -420,8 +423,13 @@ case class DataSource(
             })
         }
 
-        val fileCatalog = new ListingFileCatalog(sparkSession,
-          globbedPaths, options, partitionSchema, !checkPathExist, useSingleParquetPartition)
+        val fileCatalog = if (useSingleParquetPartition) {
+          new ParquetLightweightCatalog(sparkSession,
+            globbedPaths, options, partitionSchema, !checkPathExist)
+        } else {
+          new ListingFileCatalog(sparkSession,
+            globbedPaths, options, partitionSchema, !checkPathExist)
+        }
 
         val dataSchema = userSpecifiedSchema.map { schema =>
           val equality =

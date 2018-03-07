@@ -168,7 +168,10 @@ case class HadoopFsRelation(
   override def inputFiles: Array[String] =
     location.allFiles().map(_.getPath.toUri.toString).toArray
 
-  override def sizeInBytes: Long = location.allFiles().map(_.getLen).sum
+  override def sizeInBytes: Long = location match {
+    case parquetCatalog: ParquetLightweightCatalog => parquetCatalog.sizeInByte()
+    case _ => location.allFiles().map(_.getLen).sum
+  }
 }
 
 /**
