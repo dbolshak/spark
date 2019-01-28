@@ -43,6 +43,8 @@ private case object PreferConsistent extends LocationStrategy
 
 private case class PreferFixed(hostMap: ju.Map[TopicPartition, String]) extends LocationStrategy
 
+private case object PreferCachedConsumer extends LocationStrategy
+
 /**
  * :: Experimental :: object to obtain instances of [[LocationStrategy]]
  *
@@ -82,4 +84,14 @@ object LocationStrategies {
   @Experimental
   def PreferFixed(hostMap: ju.Map[TopicPartition, String]): LocationStrategy =
     new PreferFixed(hostMap)
+
+  /**
+    *  :: Experimental ::
+    * Use this to locate tasks on executors which already have a cached CachedKafkaConsumer.
+    * PreferConsistent will be used as default fallback if there is no appropriate cached consumer
+    */
+  @Experimental
+  def PreferCachedConsumer: LocationStrategy =
+    org.apache.spark.streaming.kafka010.PreferCachedConsumer
+
 }
