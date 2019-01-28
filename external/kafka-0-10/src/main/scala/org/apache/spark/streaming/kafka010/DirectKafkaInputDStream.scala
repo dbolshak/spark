@@ -105,6 +105,8 @@ private[spark] class DirectKafkaInputDStream[K, V](
     locationStrategy match {
       case PreferBrokers => getBrokers
       case PreferConsistent => ju.Collections.emptyMap[TopicPartition, String]()
+      // TODO return back here to analyze what we can do better
+      case PreferCachedConsumer => ju.Collections.emptyMap[TopicPartition, String]()
       case PreferFixed(hostMap) => hostMap
     }
   }

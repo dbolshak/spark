@@ -17,11 +17,11 @@
 
 package org.apache.spark.streaming.kafka010
 
-import java.{ util => ju }
+import java.util.Collections
+import java.{util, util => ju}
 
-import org.apache.kafka.clients.consumer.{ ConsumerConfig, ConsumerRecord, KafkaConsumer }
-import org.apache.kafka.common.{ KafkaException, TopicPartition }
-
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
+import org.apache.kafka.common.{KafkaException, TopicPartition}
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
 
@@ -138,6 +138,8 @@ object CachedKafkaConsumer extends Logging {
       }
     }
   }
+
+  def getCache: util.Map[CacheKey, CachedKafkaConsumer[_, _]] = Collections.unmodifiableMap(cache)
 
   /**
    * Get a cached consumer for groupId, assigned to topic and partition.
