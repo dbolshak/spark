@@ -52,7 +52,8 @@ private[spark] class KafkaRDD[K, V](
     val kafkaParams: ju.Map[String, Object],
     val offsetRanges: Array[OffsetRange],
     val preferredHosts: ju.Map[TopicPartition, String],
-    useConsumerCache: Boolean
+    useConsumerCache: Boolean,
+    locationStrategy: Option[LocationStrategy] = None
 ) extends RDD[ConsumerRecord[K, V]](sc, Nil) with Logging with HasOffsetRanges {
 
   assert("none" ==
