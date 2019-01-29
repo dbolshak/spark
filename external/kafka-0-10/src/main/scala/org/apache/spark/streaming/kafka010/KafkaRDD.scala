@@ -158,6 +158,19 @@ private[spark] class KafkaRDD[K, V](
     val allExecs = executors()
     val tp = part.topicPartition
     val prefHost = preferredHosts.get(tp)
+    val cache = if (useConsumerCache) {
+      Option(CachedKafkaConsumer.get(
+        kafkaParams.get(ConsumerConfig.GROUP_ID_CONFIG).toString,
+        tp.topic(),
+        tp.partition(),
+        kafkaParams
+      ))
+    } else {
+      None
+    }
+
+    cache.
+
     val prefExecs = if (null == prefHost) allExecs else allExecs.filter(_.host == prefHost)
     val execs = if (prefExecs.isEmpty) allExecs else prefExecs
     if (execs.isEmpty) {
